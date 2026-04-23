@@ -1,26 +1,143 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>API Migrator</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>API Migrator — Run</title>
+    <style>
+        /* Full-page sky background */
+        html, body { height: 100%; margin: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+            background: linear-gradient(#87CEEB 0%, #B0E0E6 60%, #ffffff 100%);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .clouds {
+            position: absolute;
+            top: 10%;
+            left: 0;
+            right: 0;
+            height: 200px;
+            pointer-events: none;
+            background-image: radial-gradient(white 20%, rgba(255,255,255,0) 40%);
+            opacity: 0.6;
+            filter: blur(12px);
+            animation: drift 30s linear infinite;
+        }
+
+        @keyframes drift { from { transform: translateX(-20%); } to { transform: translateX(20%);} }
+
+        .card {
+            position: relative;
+            width: min(1000px, 92%);
+            max-width: 1000px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 6px 30px rgba(0,0,0,0.12);
+            z-index: 3;
+        }
+
+        h1 { margin-top: 0; }
+
+        .controls { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+        input[type=file] { flex: 1; }
+
+        button.run {
+            background: linear-gradient(90deg,#ff8a00,#ff5c7a);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .message { margin: 8px 0; color: #155724; background: #d4edda; padding: 10px; border-radius: 6px; display:none; }
+        .message.show { display:block; }
+
+        textarea.output { width:100%; height:360px; font-family: monospace; font-size:13px; }
+
+        /* Plane animation */
+        .plane-wrap { position: absolute; left: 10%; bottom: -120px; width: 120px; height: 80px; z-index:2; }
+        .plane { width:100%; height:100%; transform-origin: center; }
+        .fly { animation: fly 4s ease-in forwards; }
+        @keyframes fly {
+            0% { transform: translateY(0) translateX(0) rotate(-8deg); opacity:1 }
+            40% { transform: translateY(-160px) translateX(140px) rotate(6deg); opacity:1}
+            100% { transform: translateY(-420px) translateX(420px) rotate(18deg); opacity:0 }
+        }
+
+    </style>
 </head>
-<body style="font-family: Arial; padding: 20px;">
+<body>
+    <div class="clouds"></div>
 
-    <h2>Swagger → AWS Converter</h2>
+    <div class="plane-wrap" id="planeWrap" aria-hidden="true">
+        <!-- simple SVG plane -->
+        <svg class="plane" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+            <g fill="none" stroke="#333" stroke-width="1">
+                <path d="M2 32 L62 32" stroke="#fff" stroke-opacity="0.3"/>
+                <path d="M8 28 L56 32 L8 36 L8 28" fill="#ff8a00" stroke="#e06a00"/>
+                <rect x="2" y="30" width="6" height="4" fill="#ff5c7a"/>
+            </g>
+        </svg>
+    </div>
 
-    <form action="/transform" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" required>
-        <button type="submit">Transform</button>
-    </form>
+    <div class="card">
+        <h1>Swagger → AWS Converter</h1>
+        <form id="runForm" action="/transform" method="post" enctype="multipart/form-data">
+            <div class="controls">
+                <input type="file" name="file" id="fileInput" required />
+                <button class="run" type="submit" name="action" value="run">Run &amp; Save</button>
+            </div>
+        </form>
 
-    {% if error %}
-        <h3 style="color:red;">Error:</h3>
-        <pre>{{ error }}</pre>
-    {% endif %}
+        <div id="message" class="message">Saved transformed spec.</div>
 
-    {% if output %}
-        <h3>Output:</h3>
-        <textarea style="width:100%; height:400px;">{{ output }}</textarea>
-    {% endif %}
+        {% if error %}
+            <div class="message" style="background:#f8d7da;color:#721c24;display:block">Error: <pre>{{ error }}</pre></div>
+        {% endif %}
 
+        {% if message %}
+            <div id="savedMsg" class="message show">{{ message }}</div>
+        {% endif %}
+        <!-- hidden marker used by JS to detect server-side message without embedding Jinja in script -->
+        <div id="msgFlag" style="display:none;">{% if message %}1{% endif %}</div>
+
+        {% if output %}
+            <h3>Output:</h3>
+            <textarea class="output">{{ output }}</textarea>
+        {% endif %}
+    </div>
+
+    <script>
+        // When the page loads, if server returned message, play plane animation
+        (function(){
+            const msgDiv = document.getElementById('msgFlag');
+            const msgPresent = msgDiv && msgDiv.textContent.trim() === '1';
+            if (msgPresent) {
+                const plane = document.querySelector('.plane');
+                if (plane) {
+                    plane.classList.add('fly');
+                }
+            }
+            // Add a small playful take-off effect on submit to show immediate feedback
+            const form = document.getElementById('runForm');
+            form.addEventListener('submit', function(){
+                const plane = document.querySelector('.plane');
+                if(plane){
+                    plane.classList.remove('fly');
+                    // trigger reflow then add
+                    void plane.offsetWidth;
+                    plane.classList.add('fly');
+                }
+            });
+        })();
+    </script>
 </body>
 </html>

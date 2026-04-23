@@ -1,0 +1,42 @@
+swagger: '2.0'
+info:
+  title: Order API
+  version: 1.0.0
+schemes:
+- https
+host: api.us.apiconnect.ibmcloud.com
+basePath: /demo-org/sandbox/order
+consumes:
+- application/json
+produces:
+- application/json
+paths:
+  /orders:
+    get:
+      summary: Get orders
+      parameters:
+      - name: status
+        in: query
+        type: string
+      responses:
+        200:
+          description: Success
+definitions:
+  Order:
+    type: object
+    properties:
+      id:
+        type: string
+      amount:
+        type: number
+_meta:
+  base_url: https://api.us.apiconnect.ibmcloud.com/demo-org/sandbox/order
+  x_aws_conversions:
+  - source_preview: "var status = apim.getvariable('request.query.status');\nif (!status)\
+      \ {\n  apim.setvariable('message.status.code', 400);\n  apim.setvariable('message.body',\
+      \ { error: 'Missing status' });\n}\n"
+    converted:
+      type: vtl
+      content: "#set($inputRoot = $input.path('$'))\n#if(!$input.params('status'))\n\
+        \  #set($context.responseOverride.status = 400)\n  { error: \"Missing status\"\
+        \ }\n#else\n  $input.json('$')\n#end"

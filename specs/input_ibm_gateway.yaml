@@ -1,0 +1,63 @@
+swagger: "2.0"
+info:
+  x-ibm-name: "order-api"
+  title: "Order API"
+  version: "1.0.0"
+
+schemes:
+  - https
+
+host: "api.us.apiconnect.ibmcloud.com"
+basePath: "/demo-org/sandbox/order"
+
+consumes:
+  - application/json
+produces:
+  - application/json
+
+paths:
+  /orders:
+    get:
+      summary: "Get orders"
+      parameters:
+        - name: "status"
+          in: "query"
+          type: "string"
+      responses:
+        200:
+          description: "Success"
+
+definitions:
+  Order:
+    type: object
+    properties:
+      id:
+        type: string
+      amount:
+        type: number
+
+x-ibm-configuration:
+  gateway: datapower-api-gateway
+
+  assembly:
+    execute:
+
+      # Step 1: Gateway script (custom logic)
+      - gatewayscript:
+          source: |
+            var status = apim.getvariable('request.query.status');
+            if (!status) {
+              apim.setvariable('message.status.code', 400);
+              apim.setvariable('message.body', { error: 'Missing status' });
+            }
+
+      # Step 2: Add header
+      - set-variable:
+          actions:
+            - set: request.headers.X-Custom-Header
+              value: "my-value"
+
+      # Step 3: Backend call
+      - invoke:
+          target-url: "https://backend.example.com/orders"
+          verb: "GET"
